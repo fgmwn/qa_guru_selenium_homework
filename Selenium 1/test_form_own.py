@@ -19,7 +19,43 @@ try:
     
     result_box = driver.find_element(By.ID, "output")
     assert "Петя Иванов" in result_box.text
-    print("Тест успешно пройден!")
+    print("Корректное имя!")
+
+    email_field = driver.find_element(By.ID, "userEmail")
+    email_field.send_keys("petya@yandex.com")
+    time.sleep(5)
+
+    submit_button = driver.find_element(By.ID, "submit")
+    submit_button.click()
+    time.sleep(5)
+
+    result_box = driver.find_element(By.ID, "output")
+    assert "petya@yandex.com" in result_box.text
+    print("Корректный email!")
+
+    current_address_field = driver.find_element(By.ID, "currentAddress")
+    current_address_field.send_keys("ул. Пушкина, д. Калатушкино")
+    time.sleep(5)
+
+    submit_button = driver.find_element(By.ID, "submit")
+    submit_button.click()
+    time.sleep(5)
+
+    result_box = driver.find_element(By.ID, "output")
+    assert "ул. Пушкина, д. Калатушкино" in result_box.text
+    print("Корректный текущий адрес!")
+
+    permanentAddress_field = driver.find_element(By.ID, "permanentAddress")
+    permanentAddress_field.send_keys("ул. Пушкина, д. Калатушкино")
+    time.sleep(5)
+
+    submit_button = driver.find_element(By.ID, "submit")
+    submit_button.click()
+    time.sleep(5)
+
+    result_box = driver.find_element(By.ID, "output")
+    assert "ул. Пушкина, д. Калатушкино" in result_box.text
+    print("Корректный постоянный адрес!")
 
 finally:
     driver.quit()
