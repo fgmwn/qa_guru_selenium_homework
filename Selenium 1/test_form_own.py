@@ -2,8 +2,6 @@ import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
-
-# ==== Настройки: меняем здесь — меняется везде ====
 URL = "https://qa-guru.github.io/one-page-form/text-box.html"
 
 # Локаторы
@@ -20,7 +18,7 @@ EMAIL = "petya@yandex.com"
 CURRENT_ADDRESS = "ул. Пушкина, д. Калатушкино"
 PERMANENT_ADDRESS = "ул. Пушкина, д. Калатушкино"
 
-# Пауза между шагами (одно место вместо десяти)
+# Пауза между шагами
 PAUSE = 5
 
 
