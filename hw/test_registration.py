@@ -11,7 +11,7 @@ from selenium.webdriver.support.ui import Select, WebDriverWait
 
 
 URL = "https://qa-guru.github.io/one-page-form/automation-practice-form.html"
-PAUSE = 3  # Для наблюдения за шагами.
+PAUSE = 1  # Для наблюдения за шагами.
 TIMEOUT = 10  # Максимальное ожидание готовности элемента.
 
 FIRST_NAME = (By.ID, "firstName")
@@ -101,7 +101,7 @@ class TestStudentRegistration(unittest.TestCase):
         self.fill(LAST_NAME, "Калатушкин")
         self.fill(EMAIL, "petr.kalatushkin@yandex.com")
         self.click(GENDER_MALE)
-        self.fill(MOBILE, "+79991234567")
+        self.fill(MOBILE, "9991234567")
         self.select_birth_date()
         self.fill(SUBJECT, "Computer")
         self.click(SUBJECT_OPTION)
@@ -109,7 +109,7 @@ class TestStudentRegistration(unittest.TestCase):
         self.click(MUSIC)
         self.driver.find_element(*PICTURE).send_keys(str(self.picture_path))
         self.pause()
-        self.fill(ADDRESS, "Москва, ул. Пушкина, д. 10")
+        self.fill(ADDRESS, "Москва, ул. Пушкина, д. Калатушкина")
         self.click(STATE)
         self.click(STATE_NCR)
         self.click(CITY)
@@ -123,7 +123,7 @@ class TestStudentRegistration(unittest.TestCase):
             "Student Name": "Пётр Калатушкин",
             "Student Email": "petr.kalatushkin@yandex.com",
             "Gender": "Male",
-            "Mobile": "+79991234567",
+            "Mobile": "9991234567",
             "Date of Birth": "25 Dec 1995",
             "Subjects": "Computer Science",
             "Hobbies": "Sports, Music",
