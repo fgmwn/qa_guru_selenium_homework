@@ -1,7 +1,11 @@
+import time
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+
+
 
 
 URL = "https://qa-guru.github.io/one-page-form/login.html"
@@ -18,9 +22,12 @@ VALID_LOGIN = "user1"
 VALID_PASSWORD = "password1"
 WRONG_CREDENTIALS = "Wrong login or password"
 
+# Пауза для наблюдения за действиями.
+PAUSE = 3
 
 def open_login_page(driver):
     driver.get(URL)
+    time.sleep(PAUSE)
     # После успешного входа сайт запоминает пользователя даже при перезагрузке.
     # Выходим через интерфейс, чтобы следующий сценарий начал с чистой формы.
     logout_button = driver.find_element(*LOGOUT_BUTTON)
@@ -33,6 +40,7 @@ def click_button(driver, locator):
     button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable(locator))
     driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", button)
     button.click()
+    time.sleep(PAUSE)
 
 
 def fill_login_form(driver, login, password):
@@ -41,7 +49,9 @@ def fill_login_form(driver, login, password):
     login_field.clear()
     password_field.clear()
     login_field.send_keys(login)
+    time.sleep(PAUSE)
     password_field.send_keys(password)
+    time.sleep(PAUSE)
 
 
 def check_successful_login(driver):
@@ -90,6 +100,7 @@ def test_logout(driver):
     assert driver.find_element(*PASSWORD_FIELD).get_property("value") == ""
     # Выход должен сохраняться после перезагрузки страницы.
     driver.refresh()
+    time.sleep(PAUSE)
     WebDriverWait(driver, 10).until(EC.visibility_of_element_located(LOGIN_FORM))
     assert not driver.find_element(*SUCCESS_PANEL).is_displayed()
     print("OK: выход из аккаунта")
@@ -122,3 +133,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
