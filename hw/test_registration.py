@@ -12,7 +12,7 @@ from selenium.webdriver.support.ui import Select, WebDriverWait
 
 URL = "https://qa-guru.github.io/one-page-form/automation-practice-form.html"
 PAUSE = 1  # Для наблюдения за шагами.
-TIMEOUT = 10  # Максимальное ожидание готовности элемента.
+TIMEOUT = 10  
 
 FIRST_NAME = (By.ID, "firstName")
 LAST_NAME = (By.ID, "lastName")
@@ -39,10 +39,13 @@ RESULT_TITLE = (By.ID, "example-modal-sizes-title-lg")
 RESULT_ROWS = (By.CSS_SELECTOR, "#resultBody tr")
 CLOSE_RESULT = (By.ID, "closeModal")
 RESULT_MODAL = (By.ID, "resultModal")
+FORM_ERROR = (By.ID, "formError")
+REQUIRED_FIELDS_ERROR = "Please fill required fields and enter a valid 10-digit mobile number."
 
 
 class TestStudentRegistration(unittest.TestCase):
     def setUp(self):
+        print(f"\nСТАРТ: {self._testMethodName}", flush=True)
         self.driver = webdriver.Chrome()
         self.driver.maximize_window()
         self.wait = WebDriverWait(self.driver, TIMEOUT)
@@ -65,6 +68,7 @@ class TestStudentRegistration(unittest.TestCase):
             "arguments[0].scrollIntoView({block: 'center'});", element
         )
         element.click()
+        print(f"ШАГ: нажат элемент {locator[1]}", flush=True)
         self.pause()
 
     def fill(self, locator, value):
@@ -74,6 +78,7 @@ class TestStudentRegistration(unittest.TestCase):
         )
         element.clear()
         element.send_keys(value)
+        print(f"ШАГ: поле {locator[1]} заполнено: {value!r}", flush=True)
         self.pause()
 
     def select_birth_date(self):
@@ -90,13 +95,17 @@ class TestStudentRegistration(unittest.TestCase):
             self.driver.find_element(*BIRTH_DATE).get_property("value"), "25 Dec 1995"
         )
 
-    def test_fill_entire_form(self):
+    def open_form(self):
         self.driver.get(URL)
         title = self.wait.until(EC.visibility_of_element_located((By.TAG_NAME, "h1")))
         self.assertEqual(title.text, "Practice Form")
         self.click(BANNER_CLOSE)
         self.wait.until(EC.invisibility_of_element_located((By.ID, "fixedban")))
 
+        print("OK: форма открыта, баннер закрыт", flush=True)
+
+    def test_fill_entire_form(self):
+        self.open_form()
         self.fill(FIRST_NAME, "Пётр")
         self.fill(LAST_NAME, "Калатушкин")
         self.fill(EMAIL, "petr.kalatushkin@yandex.com")
@@ -139,9 +148,76 @@ class TestStudentRegistration(unittest.TestCase):
             label, value = cells[0].text, cells[1].text
             self.assertIn(label, expected)
             self.assertEqual(value, expected[label], f"Неверное значение: {label}")
+            print(f"OK: {label} = {value!r}", flush=True)
 
         self.click(CLOSE_RESULT)
         self.wait.until(EC.invisibility_of_element_located(RESULT_MODAL))
+        print("OK: полная регистрация и закрытие результата проверены", flush=True)
+
+
+    def fill_required_fields(self):
+        self.fill(FIRST_NAME, "Пётр")
+        self.fill(LAST_NAME, "Калатушкин")
+        self.click(GENDER_MALE)
+        self.fill(MOBILE, "9991234567")
+
+    def check_submission_rejected(self, scenario):
+        self.click(SUBMIT)
+        error = self.wait.until(EC.visibility_of_element_located(FORM_ERROR))
+        self.assertEqual(error.text, REQUIRED_FIELDS_ERROR)
+        self.assertFalse(
+            self.driver.find_element(*RESULT_MODAL).is_displayed(),
+            "Форма с некорректными данными показала окно успеха",
+        )
+        self.assertEqual(self.driver.find_elements(*RESULT_ROWS), [])
+        print(f"OK: {scenario} : ошибка показана, результата регистрации нет", flush=True)
+
+    def test_empty_form(self):
+        self.open_form()
+        self.check_submission_rejected("все обязательные поля пустые")
+
+    def test_missing_first_name(self):
+        self.open_form()
+        self.fill_required_fields()
+        self.fill(FIRST_NAME, "")
+        self.check_submission_rejected("не указано имя")
+
+    def test_missing_last_name(self):
+        self.open_form()
+        self.fill_required_fields()
+        self.fill(LAST_NAME, "")
+        self.check_submission_rejected("не указана фамилия")
+
+    def test_missing_gender(self):
+        self.open_form()
+        self.fill(FIRST_NAME, "Пётр")
+        self.fill(LAST_NAME, "Калатушкин")
+        self.fill(MOBILE, "9991234567")
+        self.check_submission_rejected("не выбран пол")
+
+    def test_missing_mobile(self):
+        self.open_form()
+        self.fill_required_fields()
+        self.fill(MOBILE, "")
+        self.check_submission_rejected("не указан телефон")
+
+    def test_short_mobile(self):
+        self.open_form()
+        self.fill_required_fields()
+        self.fill(MOBILE, "123456789")
+        self.check_submission_rejected("телефон содержит 9 цифр вместо 10")
+
+    def test_mobile_with_letters(self):
+        self.open_form()
+        self.fill_required_fields()
+        self.fill(MOBILE, "999abc4567")
+        self.check_submission_rejected("телефон содержит буквы")
+
+    def test_whitespace_first_name(self):
+        self.open_form()
+        self.fill_required_fields()
+        self.fill(FIRST_NAME, "   ")
+        self.check_submission_rejected("имя состоит только из пробелов")
 
 
 if __name__ == "__main__":
