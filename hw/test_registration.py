@@ -128,7 +128,7 @@ class TestStudentRegistration(unittest.TestCase):
             "Subjects": "Computer Science",
             "Hobbies": "Sports, Music",
             "Picture": "student.png",
-            "Address": "Москва, ул. Пушкина, д. 10",
+            "Address": "Москва, ул. Пушкина, д. Калатушкина",
             "State and City": "NCR Delhi",
         }
         rows = self.driver.find_elements(*RESULT_ROWS)
