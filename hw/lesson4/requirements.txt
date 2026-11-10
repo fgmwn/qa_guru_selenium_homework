@@ -1,2 +1,3 @@
 selenium>=4.44,<5
 selenium-page-factory==2.8
+pytest>=8,<10
