@@ -1,45 +1,14 @@
 import base64
 import tempfile
-import time
 import unittest
 from pathlib import Path
 
 from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import Select, WebDriverWait
+# При прямом запуске файла Python ищет пакет pages рядом с этим файлом.
+from pages.registration_page import RegistrationPage
 
-
-URL = "https://qa-guru.github.io/one-page-form/automation-practice-form.html"
-PAUSE = 1  # Для наблюдения за шагами.
-TIMEOUT = 10  
-
-FIRST_NAME = (By.ID, "firstName")
-LAST_NAME = (By.ID, "lastName")
-EMAIL = (By.ID, "userEmail")
-GENDER_MALE = (By.CSS_SELECTOR, "label[for='gender-radio-1']")
-MOBILE = (By.ID, "userNumber")
-BIRTH_DATE = (By.ID, "dateOfBirthInput")
-MONTH = (By.CLASS_NAME, "react-datepicker__month-select")
-YEAR = (By.CLASS_NAME, "react-datepicker__year-select")
-DAY_25 = (By.CSS_SELECTOR, ".react-datepicker__day--025:not(.react-datepicker__day--outside-month)")
-SUBJECT = (By.ID, "subjectsInput")
-SUBJECT_OPTION = (By.XPATH, "//*[@id='subjectsDropdown']/*[normalize-space()='Computer Science']")
-SPORTS = (By.CSS_SELECTOR, "label[for='hobbies-checkbox-1']")
-MUSIC = (By.CSS_SELECTOR, "label[for='hobbies-checkbox-3']")
-PICTURE = (By.ID, "uploadPicture")
-ADDRESS = (By.ID, "currentAddress")
-STATE = (By.ID, "state")
-STATE_NCR = (By.XPATH, "//*[@id='stateCity-wrapper']/*[normalize-space()='NCR']")
-CITY = (By.ID, "city")
-CITY_DELHI = (By.XPATH, "//*[@id='stateCity-wrapper']/*[normalize-space()='Delhi']")
-SUBMIT = (By.ID, "submit")
-BANNER_CLOSE = (By.CSS_SELECTOR, "#fixedban button[aria-label='Close']")
-RESULT_TITLE = (By.ID, "example-modal-sizes-title-lg")
-RESULT_ROWS = (By.CSS_SELECTOR, "#resultBody tr")
-CLOSE_RESULT = (By.ID, "closeModal")
-RESULT_MODAL = (By.ID, "resultModal")
-FORM_ERROR = (By.ID, "formError")
+PAUSE = 1
+TIMEOUT = 10
 REQUIRED_FIELDS_ERROR = "Please fill required fields and enter a valid 10-digit mobile number."
 
 
@@ -48,7 +17,8 @@ class TestStudentRegistration(unittest.TestCase):
         print(f"\nСТАРТ: {self._testMethodName}", flush=True)
         self.driver = webdriver.Chrome()
         self.driver.maximize_window()
-        self.wait = WebDriverWait(self.driver, TIMEOUT)
+        # Page Object получает тот же браузер, который создаёт и закрывает тест.
+        self.page = RegistrationPage(self.driver, timeout=TIMEOUT, pause=PAUSE)
         self.temp_directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp_directory.cleanup)
         self.picture_path = Path(self.temp_directory.name) / "student.png"
@@ -59,74 +29,24 @@ class TestStudentRegistration(unittest.TestCase):
     def tearDown(self):
         self.driver.quit()
 
-    def pause(self):
-        time.sleep(PAUSE)
-
-    def click(self, locator):
-        element = self.wait.until(EC.element_to_be_clickable(locator))
-        self.driver.execute_script(
-            "arguments[0].scrollIntoView({block: 'center'});", element
-        )
-        element.click()
-        print(f"ШАГ: нажат элемент {locator[1]}", flush=True)
-        self.pause()
-
-    def fill(self, locator, value):
-        element = self.wait.until(EC.element_to_be_clickable(locator))
-        self.driver.execute_script(
-            "arguments[0].scrollIntoView({block: 'center'});", element
-        )
-        element.clear()
-        element.send_keys(value)
-        print(f"ШАГ: поле {locator[1]} заполнено: {value!r}", flush=True)
-        self.pause()
-
-    def select_birth_date(self):
-        self.click(BIRTH_DATE)
-        month = self.wait.until(EC.visibility_of_element_located(MONTH))
-        Select(month).select_by_value("11") 
-        self.pause()
-        year = self.wait.until(EC.visibility_of_element_located(YEAR))
-        Select(year).select_by_value("1995")
-        self.pause()
-        self.click(DAY_25)
-        self.wait.until(EC.invisibility_of_element_located((By.ID, "datepickerRoot")))
-        self.assertEqual(
-            self.driver.find_element(*BIRTH_DATE).get_property("value"), "25 Dec 1995"
-        )
-
-    def open_form(self):
-        self.driver.get(URL)
-        title = self.wait.until(EC.visibility_of_element_located((By.TAG_NAME, "h1")))
-        self.assertEqual(title.text, "Practice Form")
-        self.click(BANNER_CLOSE)
-        self.wait.until(EC.invisibility_of_element_located((By.ID, "fixedban")))
-
-        print("OK: форма открыта, баннер закрыт", flush=True)
-
     def test_fill_entire_form(self):
-        self.open_form()
-        self.fill(FIRST_NAME, "Пётр")
-        self.fill(LAST_NAME, "Калатушкин")
-        self.fill(EMAIL, "petr.kalatushkin@yandex.com")
-        self.click(GENDER_MALE)
-        self.fill(MOBILE, "9991234567")
-        self.select_birth_date()
-        self.fill(SUBJECT, "Computer")
-        self.click(SUBJECT_OPTION)
-        self.click(SPORTS)
-        self.click(MUSIC)
-        self.driver.find_element(*PICTURE).send_keys(str(self.picture_path))
-        self.pause()
-        self.fill(ADDRESS, "Москва, ул. Пушкина, д. Калатушкина")
-        self.click(STATE)
-        self.click(STATE_NCR)
-        self.click(CITY)
-        self.click(CITY_DELHI)
-        self.click(SUBMIT)
+        self.assertEqual(self.page.open_form(), "Practice Form")
+        self.page.fill_first_name("Пётр")
+        self.page.fill_last_name("Калатушкин")
+        self.page.fill_email("petr.kalatushkin@yandex.com")
+        self.page.select_male()
+        self.page.fill_mobile("9991234567")
+        self.page.select_birth_date()
+        self.assertEqual(self.page.get_birth_date(), "25 Dec 1995")
+        self.page.select_computer_science()
+        self.page.select_sports()
+        self.page.select_music()
+        self.page.upload_picture(self.picture_path)
+        self.page.fill_address("Москва, ул. Пушкина, д. Калатушкина")
+        self.page.select_ncr_delhi()
+        self.page.submit()
 
-        modal_title = self.wait.until(EC.visibility_of_element_located(RESULT_TITLE))
-        self.assertEqual(modal_title.text, "Thanks for submitting the form")
+        self.assertEqual(self.page.get_result_title(), "Thanks for submitting the form")
 
         expected = {
             "Student Name": "Пётр Калатушкин",
@@ -140,83 +60,80 @@ class TestStudentRegistration(unittest.TestCase):
             "Address": "Москва, ул. Пушкина, д. Калатушкина",
             "State and City": "NCR Delhi",
         }
-        rows = self.driver.find_elements(*RESULT_ROWS)
+        rows = self.page.get_result_rows()
         self.assertEqual(len(rows), len(expected))
         for row in rows:
-            cells = row.find_elements(By.TAG_NAME, "td")
+            cells = row
             self.assertEqual(len(cells), 2)
-            label, value = cells[0].text, cells[1].text
+            label, value = cells[0], cells[1]
             self.assertIn(label, expected)
             self.assertEqual(value, expected[label], f"Неверное значение: {label}")
             print(f"OK: {label} = {value!r}", flush=True)
 
-        self.click(CLOSE_RESULT)
-        self.wait.until(EC.invisibility_of_element_located(RESULT_MODAL))
+        self.page.close_result()
         print("OK: полная регистрация и закрытие результата проверены", flush=True)
 
-
     def fill_required_fields(self):
-        self.fill(FIRST_NAME, "Пётр")
-        self.fill(LAST_NAME, "Калатушкин")
-        self.click(GENDER_MALE)
-        self.fill(MOBILE, "9991234567")
+        self.page.fill_first_name("Пётр")
+        self.page.fill_last_name("Калатушкин")
+        self.page.select_male()
+        self.page.fill_mobile("9991234567")
 
     def check_submission_rejected(self, scenario):
-        self.click(SUBMIT)
-        error = self.wait.until(EC.visibility_of_element_located(FORM_ERROR))
-        self.assertEqual(error.text, REQUIRED_FIELDS_ERROR)
+        self.page.submit()
+        self.assertEqual(self.page.get_error_message(), REQUIRED_FIELDS_ERROR)
         self.assertFalse(
-            self.driver.find_element(*RESULT_MODAL).is_displayed(),
+            self.page.is_result_visible(),
             "Форма с некорректными данными показала окно успеха",
         )
-        self.assertEqual(self.driver.find_elements(*RESULT_ROWS), [])
+        self.assertEqual(self.page.get_result_rows(), [])
         print(f"OK: {scenario} : ошибка показана, результата регистрации нет", flush=True)
 
     def test_empty_form(self):
-        self.open_form()
+        self.assertEqual(self.page.open_form(), "Practice Form")
         self.check_submission_rejected("все обязательные поля пустые")
 
     def test_missing_first_name(self):
-        self.open_form()
+        self.assertEqual(self.page.open_form(), "Practice Form")
         self.fill_required_fields()
-        self.fill(FIRST_NAME, "")
+        self.page.fill_first_name("")
         self.check_submission_rejected("не указано имя")
 
     def test_missing_last_name(self):
-        self.open_form()
+        self.assertEqual(self.page.open_form(), "Practice Form")
         self.fill_required_fields()
-        self.fill(LAST_NAME, "")
+        self.page.fill_last_name("")
         self.check_submission_rejected("не указана фамилия")
 
     def test_missing_gender(self):
-        self.open_form()
-        self.fill(FIRST_NAME, "Пётр")
-        self.fill(LAST_NAME, "Калатушкин")
-        self.fill(MOBILE, "9991234567")
+        self.assertEqual(self.page.open_form(), "Practice Form")
+        self.page.fill_first_name("Пётр")
+        self.page.fill_last_name("Калатушкин")
+        self.page.fill_mobile("9991234567")
         self.check_submission_rejected("не выбран пол")
 
     def test_missing_mobile(self):
-        self.open_form()
+        self.assertEqual(self.page.open_form(), "Practice Form")
         self.fill_required_fields()
-        self.fill(MOBILE, "")
+        self.page.fill_mobile("")
         self.check_submission_rejected("не указан телефон")
 
     def test_short_mobile(self):
-        self.open_form()
+        self.assertEqual(self.page.open_form(), "Practice Form")
         self.fill_required_fields()
-        self.fill(MOBILE, "123456789")
+        self.page.fill_mobile("123456789")
         self.check_submission_rejected("телефон содержит 9 цифр вместо 10")
 
     def test_mobile_with_letters(self):
-        self.open_form()
+        self.assertEqual(self.page.open_form(), "Practice Form")
         self.fill_required_fields()
-        self.fill(MOBILE, "999abc4567")
+        self.page.fill_mobile("999abc4567")
         self.check_submission_rejected("телефон содержит буквы")
 
     def test_whitespace_first_name(self):
-        self.open_form()
+        self.assertEqual(self.page.open_form(), "Practice Form")
         self.fill_required_fields()
-        self.fill(FIRST_NAME, "   ")
+        self.page.fill_first_name("   ")
         self.check_submission_rejected("имя состоит только из пробелов")
 
 

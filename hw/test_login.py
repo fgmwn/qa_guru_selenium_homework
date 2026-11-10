@@ -1,4 +1,5 @@
 import time
+import unittest
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -23,13 +24,11 @@ VALID_PASSWORD = "password1"
 WRONG_CREDENTIALS = "Wrong login or password"
 
 # Пауза для наблюдения за действиями.
-PAUSE = 3
+PAUSE = 0
 
 def open_login_page(driver):
     driver.get(URL)
     time.sleep(PAUSE)
-    # После успешного входа сайт запоминает пользователя даже при перезагрузке.
-    # Выходим через интерфейс, чтобы следующий сценарий начал с чистой формы.
     logout_button = driver.find_element(*LOGOUT_BUTTON)
     if logout_button.is_displayed():
         click_button(driver, LOGOUT_BUTTON)
@@ -63,7 +62,7 @@ def check_successful_login(driver):
     assert driver.find_element(*LOGOUT_BUTTON).is_displayed(), "Нет кнопки выхода"
 
 
-def test_valid_login(driver):
+def check_valid_login(driver):
     open_login_page(driver)
     fill_login_form(driver, VALID_LOGIN, VALID_PASSWORD)
     click_button(driver, LOGIN_BUTTON)
@@ -71,7 +70,7 @@ def test_valid_login(driver):
     print("OK: успешный вход")
 
 
-def test_invalid_login(driver, login, password, expected_error, scenario):
+def check_invalid_login(driver, login, password, expected_error, scenario):
     open_login_page(driver)
     fill_login_form(driver, login, password)
     click_button(driver, LOGIN_BUTTON)
@@ -88,7 +87,7 @@ def test_invalid_login(driver, login, password, expected_error, scenario):
     print(f"OK: {scenario}")
 
 
-def test_logout(driver):
+def check_logout(driver):
     open_login_page(driver)
     fill_login_form(driver, VALID_LOGIN, VALID_PASSWORD)
     click_button(driver, LOGIN_BUTTON)
@@ -106,31 +105,56 @@ def test_logout(driver):
     print("OK: выход из аккаунта")
 
 
-def main():
-    driver = webdriver.Chrome()
-    try:
-        driver.maximize_window()
-        test_valid_login(driver)
 
-        # Данные и ожидаемые результаты отделены от повторяющихся шагов.
-        invalid_cases = [
-            ("user2", VALID_PASSWORD, WRONG_CREDENTIALS, "неверный логин"),
-            (VALID_LOGIN, "password2", WRONG_CREDENTIALS, "неверный пароль"),
-            ("", "", "Login and password are required (minimum 3 and 6 characters)", "пустые поля"),
-            ("", VALID_PASSWORD, "Login is required (minimum 3 characters)", "пустой логин"),
-            (VALID_LOGIN, "", "Password is required (minimum 6 characters)", "пустой пароль"),
-            ("ab", VALID_PASSWORD, "Login must be at least 3 characters", "короткий логин"),
-            (VALID_LOGIN, "12345", "Password must be at least 6 characters", "короткий пароль"),
-        ]
-        for login, password, error, scenario in invalid_cases:
-            test_invalid_login(driver, login, password, error, scenario)
+class TestLogin(unittest.TestCase):
+    """unittest и pytest запускают каждый метод test_... отдельно."""
 
-        test_logout(driver)
-        print("Все 9 сценариев прошли")
-    finally:
-        driver.quit()
+    def setUp(self):
+        print(f"\nСТАРТ: {self._testMethodName}", flush=True)
+        self.driver = webdriver.Chrome()
+        # Cleanup закроет браузер даже при ошибке в дальнейшей подготовке.
+        self.addCleanup(self.driver.quit)
+        self.driver.maximize_window()
+
+    # У тестовых методов только self: pytest больше не ищет фикстуру driver.
+    # Вспомогательные функции получают браузер обычным аргументом.
+    def test_valid_login(self):
+        check_valid_login(self.driver)
+
+    def test_wrong_login(self):
+        check_invalid_login(self.driver, "user2", VALID_PASSWORD,
+                            WRONG_CREDENTIALS, "неверный логин")
+
+    def test_wrong_password(self):
+        check_invalid_login(self.driver, VALID_LOGIN, "password2",
+                            WRONG_CREDENTIALS, "неверный пароль")
+
+    def test_empty_fields(self):
+        check_invalid_login(
+            self.driver, "", "",
+            "Login and password are required (minimum 3 and 6 characters)",
+            "пустые поля",
+        )
+
+    def test_empty_login(self):
+        check_invalid_login(self.driver, "", VALID_PASSWORD,
+                            "Login is required (minimum 3 characters)", "пустой логин")
+
+    def test_empty_password(self):
+        check_invalid_login(self.driver, VALID_LOGIN, "",
+                            "Password is required (minimum 6 characters)", "пустой пароль")
+
+    def test_short_login(self):
+        check_invalid_login(self.driver, "ab", VALID_PASSWORD,
+                            "Login must be at least 3 characters", "короткий логин")
+
+    def test_short_password(self):
+        check_invalid_login(self.driver, VALID_LOGIN, "12345",
+                            "Password must be at least 6 characters", "короткий пароль")
+
+    def test_logout(self):
+        check_logout(self.driver)
 
 
 if __name__ == "__main__":
-    main()
-
+    unittest.main(verbosity=2)
