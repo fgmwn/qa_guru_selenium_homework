@@ -1,9 +1,9 @@
-"""Page Object: хранит устройство страницы и действия, но не ожидания теста."""
 import time
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from elements.calendar import Calendar
+from elements.result_table import ResultTable
 
 URL = "https://qa-guru.github.io/one-page-form/automation-practice-form.html"
 
@@ -25,7 +25,6 @@ CITY_DELHI = (By.XPATH, "//*[@id='stateCity-wrapper']/*[normalize-space()='Delhi
 SUBMIT = (By.ID, "submit")
 BANNER_CLOSE = (By.CSS_SELECTOR, "#fixedban button[aria-label='Close']")
 RESULT_TITLE = (By.ID, "example-modal-sizes-title-lg")
-RESULT_ROWS = (By.CSS_SELECTOR, "#resultBody tr")
 CLOSE_RESULT = (By.ID, "closeModal")
 RESULT_MODAL = (By.ID, "resultModal")
 FORM_ERROR = (By.ID, "formError")
@@ -39,6 +38,8 @@ class RegistrationPage:
         self.pause_seconds = pause
         # Страница содержит Page Element, который отвечает только за календарь.
         self.calendar = Calendar(driver, timeout=timeout, pause=pause)
+        # Таблица сама знает, как устроены строки и ячейки HTML.
+        self.result_table = ResultTable(driver)
 
     def _pause(self):
         time.sleep(self.pause_seconds)
@@ -115,12 +116,6 @@ class RegistrationPage:
 
     def get_result_title(self):
         return self.wait.until(EC.visibility_of_element_located(RESULT_TITLE)).text
-
-    def get_result_rows(self):
-        # Возвращаем обычные данные; сравнение с ожидаемым остаётся в тесте.
-        # На следующем шаге чтение таблицы переедет в Page Element.
-        rows = self.driver.find_elements(*RESULT_ROWS)
-        return [[cell.text for cell in row.find_elements(By.TAG_NAME, "td")] for row in rows]
 
     def get_error_message(self):
         return self.wait.until(EC.visibility_of_element_located(FORM_ERROR)).text

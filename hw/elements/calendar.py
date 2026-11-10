@@ -1,4 +1,3 @@
-"""Page Element: календарь знает свои локаторы и способ выбора даты."""
 import time
 from datetime import date
 
@@ -14,7 +13,6 @@ class Calendar:
     _YEAR = (By.CLASS_NAME, "react-datepicker__year-select")
 
     def __init__(self, driver, timeout=10, pause=1):
-        # Используем браузер страницы, новый браузер здесь не создаём.
         self._driver = driver
         self._wait = WebDriverWait(driver, timeout)
         self._pause_seconds = pause
@@ -28,15 +26,13 @@ class Calendar:
         time.sleep(self._pause_seconds)
 
     def select_date(self, year, month, day):
-        """Принимает обычную дату: месяц от 1 до 12, например (1995, 12, 25)."""
-        date(year, month, day)  # Невозможная дата вызывает понятную ошибку до кликов.
+        date(year, month, day) 
         self._click(self._INPUT)
         self._wait.until(EC.visibility_of_element_located(self._POPUP))
         year_select = self._wait.until(EC.element_to_be_clickable(self._YEAR))
         Select(year_select).select_by_value(str(year))
         time.sleep(self._pause_seconds)
         month_select = self._wait.until(EC.element_to_be_clickable(self._MONTH))
-        # Нумерация месяцев сайта скрыта здесь: тест передаёт декабрь как 12.
         Select(month_select).select_by_value(str(month - 1))
         time.sleep(self._pause_seconds)
         day_locator = (
@@ -48,5 +44,4 @@ class Calendar:
         print(f"ШАГ: выбрана дата {day:02d}.{month:02d}.{year}", flush=True)
 
     def get_value(self):
-        """Возвращает фактическую дату; ожидаемое значение проверяет тест."""
         return self._driver.find_element(*self._INPUT).get_property("value")

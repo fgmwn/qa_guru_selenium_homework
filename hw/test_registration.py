@@ -61,7 +61,8 @@ class TestStudentRegistration(unittest.TestCase):
             "Address": "Москва, ул. Пушкина, д. Калатушкина",
             "State and City": "NCR Delhi",
         }
-        rows = self.page.get_result_rows()
+        # Page Element возвращает данные, а тест проверяет их смысл.
+        rows = self.page.result_table.get_rows()
         self.assertEqual(len(rows), len(expected))
         for row in rows:
             cells = row
@@ -87,7 +88,7 @@ class TestStudentRegistration(unittest.TestCase):
             self.page.is_result_visible(),
             "Форма с некорректными данными показала окно успеха",
         )
-        self.assertEqual(self.page.get_result_rows(), [])
+        self.assertEqual(self.page.result_table.get_rows(), [])
         print(f"OK: {scenario} : ошибка показана, результата регистрации нет", flush=True)
 
     def test_empty_form(self):
