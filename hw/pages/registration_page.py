@@ -2,7 +2,8 @@
 import time
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import Select, WebDriverWait
+from selenium.webdriver.support.ui import WebDriverWait
+from elements.calendar import Calendar
 
 URL = "https://qa-guru.github.io/one-page-form/automation-practice-form.html"
 
@@ -11,10 +12,6 @@ LAST_NAME = (By.ID, "lastName")
 EMAIL = (By.ID, "userEmail")
 GENDER_MALE = (By.CSS_SELECTOR, "label[for='gender-radio-1']")
 MOBILE = (By.ID, "userNumber")
-BIRTH_DATE = (By.ID, "dateOfBirthInput")
-MONTH = (By.CLASS_NAME, "react-datepicker__month-select")
-YEAR = (By.CLASS_NAME, "react-datepicker__year-select")
-DAY_25 = (By.CSS_SELECTOR, ".react-datepicker__day--025:not(.react-datepicker__day--outside-month)")
 SUBJECT = (By.ID, "subjectsInput")
 SUBJECT_OPTION = (By.XPATH, "//*[@id='subjectsDropdown']/*[normalize-space()='Computer Science']")
 SPORTS = (By.CSS_SELECTOR, "label[for='hobbies-checkbox-1']")
@@ -40,6 +37,8 @@ class RegistrationPage:
         self.driver = driver
         self.wait = WebDriverWait(driver, timeout)
         self.pause_seconds = pause
+        # Страница содержит Page Element, который отвечает только за календарь.
+        self.calendar = Calendar(driver, timeout=timeout, pause=pause)
 
     def _pause(self):
         time.sleep(self.pause_seconds)
@@ -62,17 +61,6 @@ class RegistrationPage:
         element.send_keys(value)
         print(f"ШАГ: поле {locator[1]} заполнено: {value!r}", flush=True)
         self._pause()
-
-    def select_birth_date(self):
-        self._click(BIRTH_DATE)
-        month = self.wait.until(EC.visibility_of_element_located(MONTH))
-        Select(month).select_by_value("11") 
-        self._pause()
-        year = self.wait.until(EC.visibility_of_element_located(YEAR))
-        Select(year).select_by_value("1995")
-        self._pause()
-        self._click(DAY_25)
-        self.wait.until(EC.invisibility_of_element_located((By.ID, "datepickerRoot")))
 
     def open_form(self):
         self.driver.get(URL)
@@ -124,9 +112,6 @@ class RegistrationPage:
         self._click(STATE_NCR)
         self._click(CITY)
         self._click(CITY_DELHI)
-
-    def get_birth_date(self):
-        return self.driver.find_element(*BIRTH_DATE).get_property("value")
 
     def get_result_title(self):
         return self.wait.until(EC.visibility_of_element_located(RESULT_TITLE)).text

@@ -36,8 +36,9 @@ class TestStudentRegistration(unittest.TestCase):
         self.page.fill_email("petr.kalatushkin@yandex.com")
         self.page.select_male()
         self.page.fill_mobile("9991234567")
-        self.page.select_birth_date()
-        self.assertEqual(self.page.get_birth_date(), "25 Dec 1995")
+        # Дату задаёт тест; устройство календаря скрыто в Calendar.
+        self.page.calendar.select_date(1995, 12, 25)
+        self.assertEqual(self.page.calendar.get_value(), "25 Dec 1995")
         self.page.select_computer_science()
         self.page.select_sports()
         self.page.select_music()

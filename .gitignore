@@ -1,0 +1,13 @@
+# Python: автоматически создаваемые файлы
+__pycache__/
+*.py[cod]
+
+# Кеши тестов и инструментов
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Локальные виртуальные окружения
+.venv/
+venv/
+env/
