@@ -1,113 +1,13 @@
-import time
 import unittest
-
 from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
-
-
-
-
-URL = "https://qa-guru.github.io/one-page-form/login.html"
-LOGIN_FIELD = (By.ID, "login-input")
-PASSWORD_FIELD = (By.ID, "password-input")
-LOGIN_BUTTON = (By.ID, "submit-button")
-LOGOUT_BUTTON = (By.ID, "logout-button")
-WELCOME_MESSAGE = (By.ID, "welcome-message")
-ERROR_MESSAGE = (By.ID, "error-message")
-LOGIN_FORM = (By.ID, "login-form")
-SUCCESS_PANEL = (By.ID, "success-panel")
+from pages.login_page import LoginPage
 
 VALID_LOGIN = "user1"
 VALID_PASSWORD = "password1"
 WRONG_CREDENTIALS = "Wrong login or password"
-
-# Пауза для наблюдения за действиями.
 PAUSE = 0
 
-def open_login_page(driver):
-    driver.get(URL)
-    time.sleep(PAUSE)
-    logout_button = driver.find_element(*LOGOUT_BUTTON)
-    if logout_button.is_displayed():
-        click_button(driver, LOGOUT_BUTTON)
-    WebDriverWait(driver, 10).until(EC.visibility_of_element_located(LOGIN_FORM))
-
-
-def click_button(driver, locator):
-    button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable(locator))
-    driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", button)
-    button.click()
-    time.sleep(PAUSE)
-
-
-def fill_login_form(driver, login, password):
-    login_field = driver.find_element(*LOGIN_FIELD)
-    password_field = driver.find_element(*PASSWORD_FIELD)
-    login_field.clear()
-    password_field.clear()
-    login_field.send_keys(login)
-    time.sleep(PAUSE)
-    password_field.send_keys(password)
-    time.sleep(PAUSE)
-
-
-def check_successful_login(driver):
-    message = WebDriverWait(driver, 10).until(
-        EC.visibility_of_element_located(WELCOME_MESSAGE)
-    )
-    assert message.text == f"Welcome, {VALID_LOGIN}!", "Неверное приветствие"
-    assert not driver.find_element(*LOGIN_FORM).is_displayed(), "Форма входа не скрыта"
-    assert driver.find_element(*LOGOUT_BUTTON).is_displayed(), "Нет кнопки выхода"
-
-
-def check_valid_login(driver):
-    open_login_page(driver)
-    fill_login_form(driver, VALID_LOGIN, VALID_PASSWORD)
-    click_button(driver, LOGIN_BUTTON)
-    check_successful_login(driver)
-    print("OK: успешный вход")
-
-
-def check_invalid_login(driver, login, password, expected_error, scenario):
-    open_login_page(driver)
-    fill_login_form(driver, login, password)
-    click_button(driver, LOGIN_BUTTON)
-    message = WebDriverWait(driver, 10).until(
-        EC.visibility_of_element_located(ERROR_MESSAGE)
-    )
-    assert message.text == expected_error, (
-        f"{scenario}: ожидали {expected_error!r}, получили {message.text!r}"
-    )
-    assert driver.find_element(*LOGIN_FORM).is_displayed(), "Форма входа скрыта"
-    assert not driver.find_element(*SUCCESS_PANEL).is_displayed(), (
-        f"{scenario}: пользователь не должен войти"
-    )
-    print(f"OK: {scenario}")
-
-
-def check_logout(driver):
-    open_login_page(driver)
-    fill_login_form(driver, VALID_LOGIN, VALID_PASSWORD)
-    click_button(driver, LOGIN_BUTTON)
-    check_successful_login(driver)
-    click_button(driver, LOGOUT_BUTTON)
-    WebDriverWait(driver, 10).until(EC.visibility_of_element_located(LOGIN_FORM))
-    assert not driver.find_element(*SUCCESS_PANEL).is_displayed()
-    assert driver.find_element(*LOGIN_FIELD).get_property("value") == ""
-    assert driver.find_element(*PASSWORD_FIELD).get_property("value") == ""
-    # Выход должен сохраняться после перезагрузки страницы.
-    driver.refresh()
-    time.sleep(PAUSE)
-    WebDriverWait(driver, 10).until(EC.visibility_of_element_located(LOGIN_FORM))
-    assert not driver.find_element(*SUCCESS_PANEL).is_displayed()
-    print("OK: выход из аккаунта")
-
-
-
 class TestLogin(unittest.TestCase):
-    """unittest и pytest запускают каждый метод test_... отдельно."""
 
     def setUp(self):
         print(f"\nСТАРТ: {self._testMethodName}", flush=True)
@@ -115,45 +15,70 @@ class TestLogin(unittest.TestCase):
         # Cleanup закроет браузер даже при ошибке в дальнейшей подготовке.
         self.addCleanup(self.driver.quit)
         self.driver.maximize_window()
+        self.page = LoginPage(self.driver, pause=PAUSE)
 
-    # У тестовых методов только self: pytest больше не ищет фикстуру driver.
-    # Вспомогательные функции получают браузер обычным аргументом.
+    def check_successful_login(self):
+        self.assertEqual(self.page.get_welcome_message(), f"Welcome, {VALID_LOGIN}!")
+        self.assertFalse(self.page.is_form_visible())
+        self.assertTrue(self.page.is_logout_visible())
+
+    def check_invalid_login(self, login, password, expected_error, scenario):
+        self.page.open()
+        self.page.login(login, password)
+        self.assertEqual(self.page.get_error_message(), expected_error, scenario)
+        self.assertTrue(self.page.is_form_visible())
+        self.assertFalse(self.page.is_success_visible())
+        print(f"OK: {scenario}", flush=True)
+
     def test_valid_login(self):
-        check_valid_login(self.driver)
+        self.page.open()
+        self.page.login(VALID_LOGIN, VALID_PASSWORD)
+        self.check_successful_login()
+        print("OK: успешный вход", flush=True)
 
     def test_wrong_login(self):
-        check_invalid_login(self.driver, "user2", VALID_PASSWORD,
+        self.check_invalid_login("user2", VALID_PASSWORD,
                             WRONG_CREDENTIALS, "неверный логин")
 
     def test_wrong_password(self):
-        check_invalid_login(self.driver, VALID_LOGIN, "password2",
+        self.check_invalid_login(VALID_LOGIN, "password2",
                             WRONG_CREDENTIALS, "неверный пароль")
 
     def test_empty_fields(self):
-        check_invalid_login(
-            self.driver, "", "",
+        self.check_invalid_login(
+            "", "",
             "Login and password are required (minimum 3 and 6 characters)",
             "пустые поля",
         )
 
     def test_empty_login(self):
-        check_invalid_login(self.driver, "", VALID_PASSWORD,
+        self.check_invalid_login("", VALID_PASSWORD,
                             "Login is required (minimum 3 characters)", "пустой логин")
 
     def test_empty_password(self):
-        check_invalid_login(self.driver, VALID_LOGIN, "",
+        self.check_invalid_login(VALID_LOGIN, "",
                             "Password is required (minimum 6 characters)", "пустой пароль")
 
     def test_short_login(self):
-        check_invalid_login(self.driver, "ab", VALID_PASSWORD,
+        self.check_invalid_login("ab", VALID_PASSWORD,
                             "Login must be at least 3 characters", "короткий логин")
 
     def test_short_password(self):
-        check_invalid_login(self.driver, VALID_LOGIN, "12345",
+        self.check_invalid_login(VALID_LOGIN, "12345",
                             "Password must be at least 6 characters", "короткий пароль")
 
     def test_logout(self):
-        check_logout(self.driver)
+        self.page.open()
+        self.page.login(VALID_LOGIN, VALID_PASSWORD)
+        self.check_successful_login()
+        self.page.logout()
+        self.assertFalse(self.page.is_success_visible())
+        self.assertEqual(self.page.get_login_value(), "")
+        self.assertEqual(self.page.get_password_value(), "")
+        self.page.refresh()
+        self.assertTrue(self.page.is_form_visible())
+        self.assertFalse(self.page.is_success_visible())
+        print("OK: выход и сохранение выхода после обновления", flush=True)
 
 
 if __name__ == "__main__":
